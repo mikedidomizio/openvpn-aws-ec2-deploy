@@ -6,6 +6,7 @@
   "scripts": {
     "lint": "./node_modules/.bin/eslint ./src --ext .js,.jsx,.ts,.tsx --fix",
     "start": "ts-node ./src/index.ts",
+    "terminate": "ts-node ./src/terminate.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Mike DiDomizio",

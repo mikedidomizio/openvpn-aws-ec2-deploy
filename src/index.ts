@@ -9,7 +9,11 @@ import log from './lib/helpers/log';
 import {Logging} from './lib/helpers/common.interface';
 import {performance} from 'perf_hooks';
 import {OvpnWeb} from './lib/ovpn-web.class';
+import {CONSTANTS} from "./const";
 
+/**
+ * Proceeds to create everything required to launch a OpenVPN server in EC2
+ */
 (async () => {
     const startTime = performance.now();
     // AWS_PROFILE is an env the aws cli uses for profile switching
@@ -83,7 +87,7 @@ import {OvpnWeb} from './lib/ovpn-web.class';
 
     // CREATE THE INSTANCE
     const response = await awsEC2.createAndRunInstance(ami, instanceSize, keyPairName, [{
-        Key: 'OpenVPN server', Value: '-'
+        Key: CONSTANTS.TAG_KEY_NAME, Value: '-'
     }],securityGroupId);
     const parsedResponse = JSON.parse(response);
     const instanceId = parsedResponse.Instances[0].InstanceId;
