@@ -2,6 +2,7 @@ import log from './helpers/log';
 import {Logging} from './helpers/common.interface';
 import * as rp from 'request-promise';
 import * as fs from 'fs';
+import sleep from "./helpers/sleep";
 
 // OpenVPN webportal has some additional headers required
 const openVPNHeaders = {
@@ -16,6 +17,25 @@ export class OvpnWeb {
     constructor(private ipAddress: string) {
     }
 
+    async pollWebPortalIsUp(numberOfRetriesLeft = 10): Promise<string> {
+        log(Logging.LOG, 'poll for web portal up, retries:', 10);
+        await sleep(5000);
+
+        try {
+            // this is the perfect request to make as we require to have the cookie created before we can attempt
+            // a log in
+            return this.getCookie();
+        } catch(e) {
+            if (numberOfRetriesLeft) {
+                numberOfRetriesLeft--;
+            } else {
+                throw new Error(`Web portal is not up?: ${this.ipAddress}`);
+            }
+
+            return this.pollWebPortalIsUp(numberOfRetriesLeft);
+        }
+    }
+
     async downloadOpenVpnClient(username: string, password: string): Promise<void> {
         log(Logging.LOG, 'download client vpn from web portal');
         await this.login(username, password);
@@ -26,9 +46,6 @@ export class OvpnWeb {
 
     private async login(username: string, password: string) {
         log(Logging.LOG, 'login to client web portal');
-        // before attempting to login, we hit the URL to generate the cookie that will be passed
-        // in when we attempt the login
-        await this.getCookie();
         const options = {
             uri: `https://${this.ipAddress}/__auth__`,
             jar: this.cookieJar,

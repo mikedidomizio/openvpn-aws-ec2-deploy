@@ -86,7 +86,6 @@ export class Instance {
         } else {
             if (numberOfRetriesLeft > 0) {
                 log(Logging.LOG,'Waiting for Public IP, sleep for 5 seconds');
-
             } else {
                 throw new Error(`Did not get public ip, cmd: ${cmd}`)
             }

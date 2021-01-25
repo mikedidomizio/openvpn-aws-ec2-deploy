@@ -106,9 +106,10 @@ import {CONSTANTS} from "./const";
     await sleep(25000, 'Sleeping for 25 seconds, sometimes the connection is refused, unknown why at this time');
     await new OvpnSSH().setupOpenVPNEC2Instance(publicIp, keyPairName, newPassword);
 
-    // todo poll that web portal is up
-    await sleep(5000, 'Sleeping as the web portal does take a few seconds to start responding');
-    await new OvpnWeb(publicIp).downloadOpenVpnClient('openvpn', newPassword);
+    const ovpnWeb = new OvpnWeb(publicIp);
+    // wait for the web portal to be accessible, it takes a few seconds
+    await ovpnWeb.pollWebPortalIsUp();
+    await ovpnWeb.downloadOpenVpnClient('openvpn', newPassword);
 
     const endTime = performance.now();
     const difference = ((endTime - startTime) / 1000).toFixed(2);
