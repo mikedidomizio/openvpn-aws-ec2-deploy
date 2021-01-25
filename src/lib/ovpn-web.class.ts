@@ -18,7 +18,7 @@ export class OvpnWeb {
     }
 
     async pollWebPortalIsUp(numberOfRetriesLeft = 10): Promise<string> {
-        log(Logging.LOG, 'poll for web portal up, retries:', 10);
+        log(Logging.LOG, 'poll for web portal up, sleep for 5 seconds');
         await sleep(5000);
 
         try {
@@ -26,12 +26,10 @@ export class OvpnWeb {
             // a log in
             return this.getCookie();
         } catch(e) {
-            if (numberOfRetriesLeft) {
-                numberOfRetriesLeft--;
-            } else {
+            if (numberOfRetriesLeft <= 0) {
                 throw new Error(`Web portal is not up?: ${this.ipAddress}`);
             }
-
+            numberOfRetriesLeft--;
             return this.pollWebPortalIsUp(numberOfRetriesLeft);
         }
     }

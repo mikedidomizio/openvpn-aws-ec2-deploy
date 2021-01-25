@@ -54,7 +54,9 @@ export class Instance {
     }
 
     async pollForInstanceRunningByInstanceId(instanceId: string, numberOfRetriesLeft = 10): Promise<(instanceId: string, numberOfRetriesLeft: number) => void> {
-        log(Logging.LOG, 'poll for instance running');
+        log(Logging.LOG, 'poll for instance running, sleep for 10 seconds');
+        await sleep(10000);
+
         const cmd = `aws ec2 describe-instances --filters "Name=instance-id,Values=${instanceId}" --query "Reservations[].Instances[].State.Code"`;
         const result = await execSync(cmd, {maxBuffer: 50 * 1024 * 1024}).toString().replace(/[\r\n\s]/g, '');
         const parsedResult = JSON.parse(result);
@@ -63,20 +65,18 @@ export class Instance {
         if (parsedResult[0] === 16) {
             return;
         } else {
-            if (numberOfRetriesLeft > 0) {
-                log(Logging.LOG, 'Waiting for instance running, sleep for 10 seconds');
-
-            } else {
+            if (numberOfRetriesLeft <= 0) {
                 throw new Error(`Instance is not running, check manually, cmd: ${cmd}`)
             }
-            await sleep(10000);
             numberOfRetriesLeft--;
             return this.pollForInstanceRunningByInstanceId(instanceId, numberOfRetriesLeft);
         }
     }
 
     async pollForPublicIpByInstanceId(instanceId: string, numberOfRetriesLeft = 10): Promise<string> {
-        log(Logging.LOG, 'poll for public IP assigned');
+        log(Logging.LOG, 'poll for public IP assigned, sleep for 3 seconds');
+        await sleep(3000);
+
         const cmd = `aws ec2 describe-instances --filters "Name=instance-id,Values=${instanceId}" --query "Reservations[].Instances[].NetworkInterfaces[].Association.PublicIp"`;
         const result = await execSync(cmd, {maxBuffer: 50 * 1024 * 1024}).toString().replace(/[\r\n\s]/g, '');
         const parsedResult = JSON.parse(result);
@@ -84,12 +84,9 @@ export class Instance {
         if (parsedResult && parsedResult.length) {
             return parsedResult[0];
         } else {
-            if (numberOfRetriesLeft > 0) {
-                log(Logging.LOG,'Waiting for Public IP, sleep for 5 seconds');
-            } else {
+            if (numberOfRetriesLeft <= 0) {
                 throw new Error(`Did not get public ip, cmd: ${cmd}`)
             }
-            await sleep(5000);
             numberOfRetriesLeft--;
             return this.pollForPublicIpByInstanceId(instanceId, numberOfRetriesLeft);
         }
