@@ -8,6 +8,10 @@ interface InstanceTag {
     Value: string,
 }
 
+enum InstanceCode {
+    Running = 16
+}
+
 export class Instance {
 
     async createAndRunInstance(imageId: string, instanceType = 't2.micro', keyPairName: string, instanceTags?: InstanceTag[], securityGroupIds?: string, subnetId?: string): Promise<string> {
@@ -53,43 +57,24 @@ export class Instance {
         return instanceIdsObj.map(i => `${i.Instance}`);
     }
 
-    async pollForInstanceRunningByInstanceId(instanceId: string, numberOfRetriesLeft = 10): Promise<(instanceId: string, numberOfRetriesLeft: number) => void> {
+    async pollForInstanceRunningByInstanceIdReturnIp(instanceId: string, instanceType: string = 't2.micro', numberOfRetriesLeft = 10) {
         log(Logging.LOG, 'poll for instance running, sleep for 10 seconds');
         await sleep(10000);
 
-        const cmd = `aws ec2 describe-instances --filters "Name=instance-id,Values=${instanceId}" --query "Reservations[].Instances[].State.Code"`;
+        const cmd = `aws ec2 describe-instances\
+        --filters Name=instance-id,Values=${instanceId} Name=instance-type,Values=${instanceType}\
+        --query "Reservations[].Instances[].{ Code: State.Code, PublicIp: NetworkInterfaces[0].Association.PublicIp }"`;
         const result = await execSync(cmd, {maxBuffer: 50 * 1024 * 1024}).toString().replace(/[\r\n\s]/g, '');
         const parsedResult = JSON.parse(result);
 
-        // `running` code is 16
-        if (parsedResult[0] === 16) {
-            return;
+        if (parsedResult[0] && parsedResult[0].Code === InstanceCode.Running && parsedResult[0].PublicIp !== null) {
+            return parsedResult[0].PublicIp;
         } else {
             if (numberOfRetriesLeft <= 0) {
-                throw new Error(`Instance is not running, check manually, cmd: ${cmd}`)
+                throw new Error(`Instance is not running or not assigned IP, check manually, cmd: ${cmd}`)
             }
             numberOfRetriesLeft--;
-            return this.pollForInstanceRunningByInstanceId(instanceId, numberOfRetriesLeft);
+            return this.pollForInstanceRunningByInstanceIdReturnIp(instanceId, instanceType, numberOfRetriesLeft);
         }
     }
-
-    async pollForPublicIpByInstanceId(instanceId: string, numberOfRetriesLeft = 10): Promise<string> {
-        log(Logging.LOG, 'poll for public IP assigned, sleep for 3 seconds');
-        await sleep(3000);
-
-        const cmd = `aws ec2 describe-instances --filters "Name=instance-id,Values=${instanceId}" --query "Reservations[].Instances[].NetworkInterfaces[].Association.PublicIp"`;
-        const result = await execSync(cmd, {maxBuffer: 50 * 1024 * 1024}).toString().replace(/[\r\n\s]/g, '');
-        const parsedResult = JSON.parse(result);
-
-        if (parsedResult && parsedResult.length) {
-            return parsedResult[0];
-        } else {
-            if (numberOfRetriesLeft <= 0) {
-                throw new Error(`Did not get public ip, cmd: ${cmd}`)
-            }
-            numberOfRetriesLeft--;
-            return this.pollForPublicIpByInstanceId(instanceId, numberOfRetriesLeft);
-        }
-    }
-
 }

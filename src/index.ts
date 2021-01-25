@@ -96,11 +96,8 @@ import {CONSTANTS} from "./const";
         throw new Error(`Bad instance ID: ${instanceId}`);
     }
 
-    await awsEC2.pollForInstanceRunningByInstanceId(instanceId);
-
-    // technically we get the Public IP before the instance is running but no point doing unnecessary polling
-    // todo more efficient would poll for instance running and return IP
-    const publicIp = await awsEC2.pollForPublicIpByInstanceId(instanceId);
+    // wait for instance up
+    const publicIp = await awsEC2.pollForInstanceRunningByInstanceIdReturnIp(instanceId, instanceSize);
 
     // todo remove and reconnect
     await sleep(25000, 'Sleeping for 25 seconds, sometimes the connection is refused, unknown why at this time');
@@ -115,4 +112,5 @@ import {CONSTANTS} from "./const";
     const difference = ((endTime - startTime) / 1000).toFixed(2);
     log(Logging.SUCCESS, `Finished creating OpenVPN on EC2 in ${difference} seconds`);
     log(Logging.SUCCESS, 'Take the client and import it into OpenVPN Connect');
+    log(Logging.SUCCESS, '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
 })();
