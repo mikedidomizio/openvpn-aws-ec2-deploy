@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": [ "es2015", "dom"],
+    "target": "ES5"
+  },
+  "include": [
+    "./src/*"
+  ]
+}
