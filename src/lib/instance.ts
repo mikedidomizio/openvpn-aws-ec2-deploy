@@ -44,7 +44,7 @@ export class Instance {
     async terminateInstanceByTagKey(keyName: string): Promise<void> {
         log(Logging.LOG, `terminating instances by key name: ${keyName}`);
         const instanceIds: string[] =  await this.listInstancesByTagKeyReturnInstanceIds(keyName);
-        let cmd = `aws ec2 terminate-instances --instance-ids`;
+        let cmd = 'aws ec2 terminate-instances --instance-ids';
         cmd += ` ${instanceIds.join(' ')}`;
         await execSync(cmd, {maxBuffer: 50 * 1024 * 1024}).toString();
         log(Logging.LOG, `terminated instances: ${instanceIds.join(' ')}`);
@@ -52,12 +52,12 @@ export class Instance {
 
     async listInstancesByTagKeyReturnInstanceIds(keyName: string): Promise<string[]> {
         log(Logging.LOG, `list EC2 instances by tag key ${keyName}`);
-        const cmd = `aws ec2 describe-instances --filters "Name=tag-key,Values=OpenVPN server" --query "Reservations[].Instances[].{Instance:InstanceId}"`;
+        const cmd = 'aws ec2 describe-instances --filters "Name=tag-key,Values=OpenVPN server" --query "Reservations[].Instances[].{Instance:InstanceId}"';
         const instanceIdsObj = JSON.parse(execSync(cmd, {maxBuffer: 50 * 1024 * 1024}).toString()) as { Instance: string}[];
         return instanceIdsObj.map(i => `${i.Instance}`);
     }
 
-    async pollForInstanceRunningByInstanceIdReturnIp(instanceId: string, instanceType: string = 't2.micro', numberOfRetriesLeft = 10) {
+    async pollForInstanceRunningByInstanceIdReturnIp(instanceId: string, instanceType = 't2.micro', numberOfRetriesLeft = 10) {
         log(Logging.LOG, 'poll for instance running, sleep for 10 seconds');
         await sleep(10000);
 

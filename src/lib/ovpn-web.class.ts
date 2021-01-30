@@ -2,7 +2,7 @@ import log from './helpers/log';
 import {Logging} from './helpers/common.interface';
 import * as rp from 'request-promise';
 import * as fs from 'fs';
-import sleep from "./helpers/sleep";
+import sleep from './helpers/sleep';
 
 // OpenVPN webportal has some additional headers required
 const openVPNHeaders = {

@@ -10,7 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Mike DiDomizio",
-  "license": "GPLV3",
+  "license": "MIT",
   "dependencies": {
     "request": "^2.88.2",
     "request-promise": "^4.2.6",

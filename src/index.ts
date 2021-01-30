@@ -9,7 +9,7 @@ import log from './lib/helpers/log';
 import {Logging} from './lib/helpers/common.interface';
 import {performance} from 'perf_hooks';
 import {OvpnWeb} from './lib/ovpn-web.class';
-import {CONSTANTS} from "./const";
+import {CONSTANTS} from './const';
 
 /**
  * Proceeds to create everything required to launch a OpenVPN server in EC2
@@ -99,8 +99,7 @@ import {CONSTANTS} from "./const";
     // wait for instance up
     const publicIp = await awsEC2.pollForInstanceRunningByInstanceIdReturnIp(instanceId, instanceSize);
 
-    // todo remove and reconnect
-    await sleep(25000, 'Sleeping for 25 seconds, sometimes the connection is refused, unknown why at this time');
+    // SSH into the instance and setup OVPN
     await new OvpnSSH().setupOpenVPNEC2Instance(publicIp, keyPairName, newPassword);
 
     const ovpnWeb = new OvpnWeb(publicIp);

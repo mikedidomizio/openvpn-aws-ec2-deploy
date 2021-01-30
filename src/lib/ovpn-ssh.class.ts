@@ -3,13 +3,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {Logging} from './helpers/common.interface';
 import log from './helpers/log';
+import sleep from './helpers/sleep';
 
 const NODE_DEBUG = process.env.NODE_DEBUG as unknown as Logging;
 
 export class OvpnSSH {
 
-    // todo wrap this in a promise, and on error reject and run again
-    async setupOpenVPNEC2Instance(publicIp: string, keyPairInBaseDir: string, newPassword: string): Promise<void> {
+    async setupOpenVPNEC2Instance(publicIp: string, keyPairInBaseDir: string, newPassword: string, numberOfRetries = 5): Promise<void> {
         log(Logging.LOG, 'setup OpenVPN EC2 instance');
         // debugging will only occur if NODE_DEBUG is set to anything
         const debugForSSH2Shell = !!NODE_DEBUG;
@@ -80,7 +80,7 @@ export class OvpnSSH {
 
                 msg: {
                     send: function (message) {
-                        log(Logging.LOG,message);
+                        log(Logging.LOG, message);
                     }
                 },
 
@@ -105,7 +105,7 @@ export class OvpnSSH {
                         // we only want to see when something is happening
                         // the response does contain the command as well
                         if (command !== '') {
-                            log(Logging.LOG,response);
+                            log(Logging.LOG, response);
                         }
 
                     }
@@ -113,10 +113,10 @@ export class OvpnSSH {
 
                 onCommandTimeout: function (/*command: string, response: string, stream, connection: string*/) {
                     // I think this is necessary for the Activation Key "empty string" above to continue otherwise it just hangs
-                    // log(Logging.LOG,'TIMEOUT')
+                    // log(Logging.LOG, 'TIMEOUT')
                 },
 
-                onError:            function( err, type, close = false, callback ) {
+                onError: async (err, type, /*close = false, callback*/) => {
                     //err is either an Error object or a string containing the error message
                     //type is a string containing the error type
                     //close is a Boolean value indicating if the connection should be closed or not
@@ -128,21 +128,45 @@ export class OvpnSSH {
                         log(Logging.ERROR, err);
                         log(Logging.ERROR, type);
                     }
+
+                    // if we can't connect we'll attempt a few reconnects before failing
+                    if (type === 'Connection') {
+                        if (numberOfRetries <= 0) {
+                            throw new Error('Could not connect via SSH to AWS server');
+                        }
+                        await sleep(3000);
+                        log(Logging.LOG, 'Could not connect, will re-attempt:', numberOfRetries);
+
+                        try {
+                            numberOfRetries--;
+                            await this.setupOpenVPNEC2Instance(publicIp, keyPairInBaseDir, newPassword, numberOfRetries);
+                            // although we are inside an error
+                            // the previous call will either continuously error or hit this next line and resolve back
+                            resolve();
+                        } catch(e) {
+                            // the previously command will continously call itself until it runs out of retries and then
+                            // it'll finally just error out
+                            reject(e);
+                        }
+                    }
                 },
+            };
+
+            const callback = function(fullOutput: string) {
+                // output could be the output from all the commands
+                // good for troubleshooting
+
+                // if it's a connection error, it'll be an empty string (no output)
+                // we'll check to see for a specific message and resolve if so
+                if (fullOutput.includes('Configuration Complete')) {
+                    log(Logging.SUCCESS, `\u2713 Successfully setup, admin panel can be accessed at https://${publicIp}:943/admin.  This may show a warning when loading in the browser as it's an unsecure connection, this is expected`);
+                    resolve();
+                }
             };
 
             // Create a new ssh2shell instance passing in the host object
             const SSH = new SSH2Shell(host);
-
-            const callback = function (e) {
-                // todo this callback is still called on connection.error and resolves
-                log(Logging.SUCCESS,`\u2713 Successfully setup, admin panel can be accessed at https://${publicIp}:943/admin.  This may show a warning when loading in the browser as it's an unsecure connection, this is expected`);
-                resolve();
-            };
-
-            SSH.on('error', reject);
             SSH.connect(callback);
         });
     }
-
 }
